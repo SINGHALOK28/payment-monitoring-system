@@ -46,20 +46,30 @@ def generate_normal_transaction():
     }
 
 def generate_bad_transaction():
-    """Chaos-injection: intentionally creates anomalous data"""
+    """Chaos-injection: intentionally creates anomalous data across multiple attributes"""
     txn = generate_normal_transaction()
-    anomaly_type = random.choice(["bad_amount", "null_risk", "negative_amount", "bad_payment_method"])
 
-    if anomaly_type == "bad_amount":
-        txn["amount"] = "N/A"  # non-numeric value in numeric field
-    elif anomaly_type == "null_risk":
-        txn["risk_score"] = None
-    elif anomaly_type == "negative_amount":
-        txn["amount"] = -round(random.uniform(50, 500), 2)
-    elif anomaly_type == "bad_payment_method":
-        txn["payment_method"] = "CryptoTransfer"  # unexpected/unknown value
+    anomaly_type = random.choice([
+        "amount_as_text",
+        "risk_score_as_text",
+        "amount_negative",
+        "city_as_number",
+        "payment_method_invalid"
+    ])
+
+    if anomaly_type == "amount_as_text":
+        txn["amount"] = random.choice(["N/A", "unknown", "ERROR", "pending"])
+    elif anomaly_type == "risk_score_as_text":
+        txn["risk_score"] = random.choice(["high", "N/A", "???"])
+    elif anomaly_type == "amount_negative":
+        txn["amount"] = str(-round(random.uniform(100, 999), 2))
+    elif anomaly_type == "city_as_number":
+        txn["city"] = str(random.randint(1000, 9999))
+    elif anomaly_type == "payment_method_invalid":
+        txn["payment_method"] = "12345"
 
     return txn
+
 
 def insert_transaction(conn, txn):
     cur = conn.cursor()

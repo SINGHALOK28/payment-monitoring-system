@@ -20,11 +20,12 @@ def get_connection():
 
 def get_total_sales(conn):
     query = """
-        SELECT COUNT(*) AS total_transactions, SUM(amount) AS total_amount
+        SELECT COUNT(*) AS total_transactions, SUM(amount::NUMERIC) AS total_amount
         FROM transactions
         WHERE transaction_date::date = CURRENT_DATE - 1
         AND amount IS NOT NULL;
     """
+
     df = pd.read_sql(query, conn)
     return df.iloc[0]["total_transactions"], df.iloc[0]["total_amount"]
 
@@ -65,7 +66,7 @@ def get_failed_count(conn):
 
 def get_avg_risk_score(conn):
     query = """
-        SELECT AVG(risk_score) AS avg_risk_score
+        SELECT AVG(risk_score::NUMERIC) AS avg_risk_score
         FROM transactions
         WHERE risk_score IS NOT NULL;
     """

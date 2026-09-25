@@ -13,17 +13,26 @@ def diagnose_failure(query_name, error_message, sample_data=None):
     root cause diagnosis + suggested fix.
     """
     prompt = f"""
-You are a data engineering assistant. A SQL query failed in an automated
-payment transaction reporting pipeline. Analyze the failure and respond
-concisely in this exact format:
+You are an expert data engineer debugging a failure in an automated
+payment transaction reporting pipeline. A SQL query failed while running
+against a PostgreSQL database. Carefully analyze the error message and
+explain it clearly for someone reviewing this in a dashboard.
 
-Root Cause: <one or two lines>
-Affected Field: <column/field name if identifiable>
-Suggested Fix: <one line, actionable>
+Respond in EXACTLY this format, nothing else:
+
+🔍 What Went Wrong: <Explain in plain, simple language what happened — avoid just repeating the raw error. Describe it like you're explaining to someone who didn't see the error themselves.>
+
+📍 Affected Field: <The exact column/field name involved, if identifiable from the error or query name>
+
+⚠️ Why This Happened: <The likely real-world reason this bad data got in — e.g. wrong data type, missing validation, unexpected value from a source system>
+
+✅ How To Fix It: <A specific, actionable step to fix THIS particular issue — mention the exact field and what value/type it should have instead. Be concrete, not generic.>
 
 Query Name: {query_name}
 Error Message: {error_message}
 Sample Data (if available): {sample_data}
+
+Keep the entire response under 120 words. Do not include any text outside the format above.
 """
 
     try:
@@ -32,7 +41,7 @@ Sample Data (if available): {sample_data}
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=300,
+            max_tokens=400,
             temperature=0.3
         )
         diagnosis = response.choices[0].message.content
