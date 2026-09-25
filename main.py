@@ -81,6 +81,29 @@ def save_failure_log(conn, query_name, error_message, ai_diagnosis):
     conn.commit()
     cur.close()
 
+def save_report(conn, report_data):
+    cur = conn.cursor()
+
+    total_txn, total_amount = report_data.get("total_sales", (None, None))
+
+    total_txn = int(total_txn) if total_txn is not None else None
+    total_amount = float(total_amount) if total_amount is not None else None
+
+    cur.execute("""
+        INSERT INTO reports
+        (report_date, total_transactions, total_amount, top_city, top_payment_method, failed_count)
+        VALUES (CURRENT_DATE, %s, %s, %s, %s, %s)
+    """, (
+        total_txn,
+        total_amount,
+        report_data.get("top_city"),
+        report_data.get("top_payment_method"),
+        int(report_data.get("failed_count")) if report_data.get("failed_count") is not None else None
+    ))
+
+    conn.commit()
+    cur.close()
+
 def run_daily_report():
     conn = get_connection()
     report_data = {}
@@ -118,6 +141,15 @@ def run_daily_report():
 
             conn.rollback()
             save_failure_log(conn, name, error_message, ai_diagnosis)
+
+    if report_data:
+        try:
+            save_report(conn, report_data)
+            print("Report saved successfully!")
+        except Exception as e:
+            logging.error(f"Failed to save report: {e}")
+            print(f"Report save failed: {e}")
+            conn.rollback()
 
     conn.close()
 
