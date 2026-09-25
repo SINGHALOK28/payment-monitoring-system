@@ -1,0 +1,10 @@
+2026-09-25 17:57:22,093 | INFO | Query 'total_sales' succeeded: (np.float64(21.0), np.float64(42019.73))
+2026-09-25 17:57:22,195 | INFO | Query 'top_city' succeeded: Pune
+2026-09-25 17:57:22,299 | INFO | Query 'top_payment_method' succeeded: Wallet
+2026-09-25 17:57:22,390 | INFO | Query 'failed_count' succeeded: 2
+2026-09-25 17:57:22,486 | INFO | Query 'avg_risk_score' succeeded: 0.2673809523809524
+2026-09-25 18:51:46,505 | INFO | Query 'total_sales' succeeded: (np.float64(21.0), np.float64(42019.73))
+2026-09-25 18:51:46,614 | INFO | Query 'top_city' succeeded: Pune
+2026-09-25 18:51:46,724 | INFO | Query 'top_payment_method' succeeded: Wallet
+2026-09-25 18:51:46,839 | INFO | Query 'failed_count' succeeded: 2
+2026-09-25 18:51:46,929 | INFO | Query 'avg_risk_score' succeeded: 0.2673809523809524
