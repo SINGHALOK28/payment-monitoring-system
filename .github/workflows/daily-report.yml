@@ -2,7 +2,7 @@ name: Daily Payment Report
 
 on:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '30 2 * * *'
   workflow_dispatch:
 
 jobs:

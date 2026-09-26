@@ -22,10 +22,9 @@ def get_total_sales(conn):
     query = """
         SELECT COUNT(*) AS total_transactions, SUM(amount::NUMERIC) AS total_amount
         FROM transactions
-        WHERE transaction_date::date = CURRENT_DATE - 1
+        WHERE transaction_date::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
         AND amount IS NOT NULL;
     """
-
     df = pd.read_sql(query, conn)
     return df.iloc[0]["total_transactions"], df.iloc[0]["total_amount"]
 
@@ -33,6 +32,7 @@ def get_top_city(conn):
     query = """
         SELECT city, COUNT(*) AS txn_count
         FROM transactions
+        WHERE transaction_date::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
         GROUP BY city
         ORDER BY txn_count DESC
         LIMIT 1;
@@ -46,6 +46,7 @@ def get_top_payment_method(conn):
     query = """
         SELECT payment_method, COUNT(*) AS usage_count
         FROM transactions
+        WHERE transaction_date::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
         GROUP BY payment_method
         ORDER BY usage_count DESC
         LIMIT 1;
@@ -59,7 +60,8 @@ def get_failed_count(conn):
     query = """
         SELECT COUNT(*) AS failed_count
         FROM transactions
-        WHERE transaction_status = 'Failed';
+        WHERE transaction_status = 'Failed'
+        AND transaction_date::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date;
     """
     df = pd.read_sql(query, conn)
     return int(df.iloc[0]["failed_count"])
@@ -68,7 +70,8 @@ def get_avg_risk_score(conn):
     query = """
         SELECT AVG(risk_score::NUMERIC) AS avg_risk_score
         FROM transactions
-        WHERE risk_score IS NOT NULL;
+        WHERE transaction_date::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+        AND risk_score IS NOT NULL;
     """
     df = pd.read_sql(query, conn)
     return df.iloc[0]["avg_risk_score"]
@@ -90,16 +93,20 @@ def save_report(conn, report_data):
     total_txn = int(total_txn) if total_txn is not None else None
     total_amount = float(total_amount) if total_amount is not None else None
 
+    avg_risk = report_data.get("avg_risk_score")
+    avg_risk = float(avg_risk) if avg_risk is not None else None
+
     cur.execute("""
         INSERT INTO reports
-        (report_date, total_transactions, total_amount, top_city, top_payment_method, failed_count)
-        VALUES (CURRENT_DATE, %s, %s, %s, %s, %s)
+        (report_date, total_transactions, total_amount, top_city, top_payment_method, failed_count, avg_risk_score)
+        VALUES (CURRENT_DATE, %s, %s, %s, %s, %s, %s)
     """, (
         total_txn,
         total_amount,
         report_data.get("top_city"),
         report_data.get("top_payment_method"),
-        int(report_data.get("failed_count")) if report_data.get("failed_count") is not None else None
+        int(report_data.get("failed_count")) if report_data.get("failed_count") is not None else None,
+        avg_risk
     ))
 
     conn.commit()

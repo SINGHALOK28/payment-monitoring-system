@@ -1,9 +1,10 @@
 import os
 import random
 import psycopg2
+import pytz
 from faker import Faker
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Load environment variables from .env file
 load_dotenv()
@@ -42,31 +43,23 @@ def generate_normal_transaction():
         "city": random.choice(cities),
         "device_type": random.choice(device_types),
         "risk_score": round(random.uniform(0.01, 0.5), 2),
-        "transaction_date": datetime.now() - timedelta(days=random.randint(0, 1))
+        "transaction_date": datetime.now(pytz.timezone("Asia/Kolkata"))
     }
 
 def generate_bad_transaction():
-    """Chaos-injection: intentionally creates anomalous data across multiple attributes"""
+    """Chaos-injection: only uses anomaly types that genuinely trigger a query failure
+    (amount and risk_score are the only fields cast to NUMERIC in main.py's queries)"""
     txn = generate_normal_transaction()
 
     anomaly_type = random.choice([
         "amount_as_text",
         "risk_score_as_text",
-        "amount_negative",
-        "city_as_number",
-        "payment_method_invalid"
     ])
 
     if anomaly_type == "amount_as_text":
         txn["amount"] = random.choice(["N/A", "unknown", "ERROR", "pending"])
     elif anomaly_type == "risk_score_as_text":
         txn["risk_score"] = random.choice(["high", "N/A", "???"])
-    elif anomaly_type == "amount_negative":
-        txn["amount"] = str(-round(random.uniform(100, 999), 2))
-    elif anomaly_type == "city_as_number":
-        txn["city"] = str(random.randint(1000, 9999))
-    elif anomaly_type == "payment_method_invalid":
-        txn["payment_method"] = "12345"
 
     return txn
 
@@ -86,13 +79,22 @@ def insert_transaction(conn, txn):
     conn.commit()
     cur.close()
 
-def generate_daily_batch(num_records=50, chaos_probability=0.12):
+def generate_daily_batch(num_records=50, chaos_probability=0.20, max_bad_records=1):
     conn = get_connection()
     success_count = 0
     bad_count = 0
 
-    for _ in range(num_records):
-        if random.random() < chaos_probability:
+    # Decide ONCE for the whole batch: is today a "chaos day" or a "clean day"?
+    is_chaos_day = random.random() < chaos_probability
+
+    # Agar chaos day hai, toh sirf 1 (ya max_bad_records tak) record ko bad banao
+    bad_indices = set()
+    if is_chaos_day:
+        num_bad = random.randint(1, max_bad_records)
+        bad_indices = set(random.sample(range(num_records), num_bad))
+
+    for i in range(num_records):
+        if i in bad_indices:
             txn = generate_bad_transaction()
             bad_count += 1
         else:
@@ -106,7 +108,7 @@ def generate_daily_batch(num_records=50, chaos_probability=0.12):
             conn.rollback()
 
     conn.close()
-    print(f"Batch complete: {success_count} normal, {bad_count} chaos-injected records attempted")
+    print(f"Batch complete: {success_count} normal, {bad_count} chaos-injected records. Chaos day: {is_chaos_day}")
 
 if __name__ == "__main__":
     generate_daily_batch()
